@@ -1,5 +1,7 @@
+import { spawn } from 'child_process';
 import './App.css';
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { useMovies } from './useMovies';
 
 
 const tempMovieData = [
@@ -51,7 +53,7 @@ const tempWatchedData = [
 
 
 const average = (arr: number[]) =>
-  arr.reduce((acc, cur) => acc + cur / arr.length, 0);
+  arr.reduce((acc, cur) => acc + cur / arr?.length, 0);
 
 function NavBar({ children }: any) {
   return (
@@ -73,13 +75,20 @@ function Logo() {
 function NumResult({ movies }: any) {
   return (
     <p className="num-results">
-      Found <strong>{movies.length}</strong> results
+      Found <strong>{movies?.length}</strong> results
     </p>
   )
 }
 
-function Search() {
-  const [query, setQuery] = useState("");
+function Search({ query, setQuery }: any) {
+
+  const inputEl = useRef<HTMLInputElement>(null);
+
+  useEffect(function () {
+    inputEl?.current?.focus();
+
+  })
+
   return (
     <input
       className="search"
@@ -87,6 +96,7 @@ function Search() {
       placeholder="Search movies..."
       value={query}
       onChange={(e) => setQuery(e.target.value)}
+      ref={inputEl}
     />
   )
 }
@@ -115,21 +125,22 @@ function Box({ children }: any) {
   )
 }
 
-function MovieList({ movies }: { movies: any[] }) {
+function MovieList({ movies, setSelectedId }: { movies: any[], setSelectedId: any }) {
 
   return (
     <ul className="list">
       {movies?.map((movie) => (
-        <Movie movie={movie} />
+        <Movie movie={movie} setSelectedId={setSelectedId} />
       ))}
     </ul>
   )
 }
 
 
-function Movie({ movie }: any) {
+function Movie({ movie, setSelectedId }: any) {
+
   return (
-    <li key={movie.imdbID}>
+    <li key={movie.imdbID} onClick={() => setSelectedId(movie.imdbID)}>
       <img src={movie.Poster} alt={`${movie.Title} poster`} />
       <h3>{movie.Title}</h3>
       <div>
@@ -205,26 +216,76 @@ function WatchedMovie({ movie }: any) {
     </li>
   )
 }
+
+
+const KEY = 'fd7f3361';
+
 export default function App() {
-  const [movies, setMovies] = useState(tempMovieData);
-  const [watched, setWatched] = useState(tempWatchedData);
+  const [watched, setWatched] = useState([]);
+  const [selectedId, setSeletedId] = useState(null);
+
+  const [query, setQuery] = useState("");
+
+  const tempQuery = "interstellar"
+
+  function handleSetSeletedId(id: any) {
+    setSeletedId(id);
+  }
+  // useEffect(function () {
+  //   fetch(`http://www.omdbapi.com/?apikey=${KEY}&s=interstellar`)
+  //     .then(r => r.json())
+  //     .then(data => setMovies(data.Search));
+  // }, [])
+
+
+  const { movies, isError, isLoading } = useMovies(query)
 
   return (
     <>
       <NavBar >
         <Logo />
-        <Search />
+        <Search query={query} setQuery={setQuery} />
         <NumResult movies={movies} />
       </NavBar>
       <Main>
         <Box>
-          <MovieList movies={movies} />
+          {isLoading ?
+            <span>loading</span> :
+            <MovieList movies={movies} setSelectedId={handleSetSeletedId} />
+          }
         </Box>
         <Box >
           <WatchSummary watched={watched} />
           <WathcedMovieList watched={watched} />
+          <SelectedMovie selectedId={selectedId} />
         </Box>
       </Main>
     </>
   );
 }
+
+function SelectedMovie({ selectedId }: any) {
+
+  const [seletecMovieDetails, setSelectedMovieDetails] = useState<any>(null);
+
+  useEffect(function () {
+    async function SelectedMovie() {
+      const res = await fetch(`http://www.omdbapi.com/?apikey=${KEY}&i=${selectedId}`)
+      // const res = await fetch(`http://www.omdbapi.com/?apikey=${KEY}&s=${tempQuery}`)
+
+      const data = await res.json();
+      console.log(data);
+      setSelectedMovieDetails(data);
+
+    }
+
+
+    SelectedMovie();
+
+  }, [selectedId])
+
+  return (
+    <div>{seletecMovieDetails?.Actors}</div>
+  )
+}
+

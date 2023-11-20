@@ -22,9 +22,9 @@ const root = ReactDOM.createRoot(
 );
 root.render(
   <React.StrictMode>
-    {/* <App /> */}
-    <StarRating maxRating={10} />
-    <StarRating maxRating={10} color='blue' size='24' />
+    <App />
+    {/* <StarRating maxRating={10} /> */}
+    {/* <StarRating maxRating={10} color='blue' size='24' /> */}
 
     <Test />
 
